@@ -87,6 +87,11 @@ class VersionManager():
         self.deprication_warnings = deprication_warnings
         self.rollback_warnings = rollback_warnings
         self._states = {}
+        if versions is None: versions = []
+        try:
+            versions = list(versions)
+        except TypeError:
+            raise TypeError("Versions must be an iterable if supplied and should be a list or tuple")
         self.register_versions(*versions)
 
     def detach_interface(self):

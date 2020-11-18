@@ -34,12 +34,13 @@ class SQLite3Interface(sqlite3.Connection, DBInterface):
         self.check_versiontable()
         
     def get_versiontable(self):
-        return self.execute("""SELECT * FROM __states;""").fetchall()
+        ## Make sure we use the original sqlite3.execute
+        return super().execute("""SELECT * FROM __states;""").fetchall()
 
     def check_versiontable(self):
         try: self.get_versiontable()
         except sqlite3.OperationalError:
-            self.execute("""CREATE TABLE __states (state TEXT UNIQUE, version TEXT);""")
+            super().execute("""CREATE TABLE __states (state TEXT UNIQUE, version TEXT);""")
             try:
                 self.get_versiontable()
             except:
@@ -56,12 +57,14 @@ class SQLite3Interface(sqlite3.Connection, DBInterface):
         """ Registers or Updates a State's Version in the __states table """
         state = stateversion.state.name
         version = str(stateversion.version)
-        self.execute("""INSERT INTO __states (state, version) VALUES (:state, :version) ON CONFLICT (state) DO UPDATE SET version=excluded.version;""", dict(state = state, version=version))
+        ## Make sure we use the original sqlite3.execute
+        super().execute("""INSERT INTO __states (state, version) VALUES (:state, :version) ON CONFLICT (state) DO UPDATE SET version=excluded.version;""", dict(state = state, version=version))
 
     def remove_version(self, state):
         """ Removes a State from the __states table: ensure the State is completely rolled back before calling this method. """
         state = state.name
-        self.execute("""DELETE FROM __states WHERE state = :state;""", dict(state = state))
+        ## Make sure we use the original sqlite3.execute
+        super().execute("""DELETE FROM __states WHERE state = :state;""", dict(state = state))
 
 class StateVersion(SV):
     @classmethod

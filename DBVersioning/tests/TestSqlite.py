@@ -62,6 +62,31 @@ class StateVersionCase(unittest.TestCase):
         self.assertEqual(dbinter.check_version(state), "1.0")
         self.assertEqual([tuple(r) for r in dbinter.execute("""SELECT * FROM a;""")], [("b",)])
         self.assertRaises(sqlite3.OperationalError, lambda: dbinter.execute("""SELECT * FROM c;""").fetchall())
+
+class SubclassCase(unittest.TestCase):
+    def test_subclass_executereturn(self):
+        """ Make sure that SQLite3Interface always uses sqlite3.Connection.execute so that Subclasses can overwrite execute if desired.
+        
+            Additionally, this would normally lead to an OperationalError that is passed on the first check_versiontable
+            try/except when the __states table is initially created, but raised with a custom message on the followup
+            try/except. This can lead to confusion since the initial error may be missed in the error statck (though the
+            second time check_versiontable is executed on a database the correct error is the only error given).
+        """
+        class SubClass(sqlite.SQLite3Interface):
+            """ This is an example subclass which removes the need for calling fetchall().
+                
+                In the above described situation, when this is first called it raises "Could not create __states table"
+                even though the table is properly created: It fails the second try/excepts with "AttributeError: 'list'
+                object has no attribute 'fetchall'"
+            """
+            def execute(self, *args, **kw):
+                return super().execute(*args, **kw).fetchall()
+                
+        dbinter = SubClass(":memory:")
+        myvm = VersionManager(dbinter, versions = [BasicV1,])
+        ## So long as the code hasn't caused an error by this point, the bug is fixed.
+        ## We'll check for propriety's sake, though
+        self.assertEqual(dbinter.check_version(BasicV1), BasicV1.version)
         
 if __name__ == "__main__":
     unittest.main()
