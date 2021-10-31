@@ -59,12 +59,14 @@ class SQLite3Interface(sqlite3.Connection, DBInterface):
         version = str(stateversion.version)
         ## Make sure we use the original sqlite3.execute
         super().execute("""INSERT INTO __states (state, version) VALUES (:state, :version) ON CONFLICT (state) DO UPDATE SET version=excluded.version;""", dict(state = state, version=version))
+        self.commit()
 
     def remove_version(self, state):
         """ Removes a State from the __states table: ensure the State is completely rolled back before calling this method. """
         state = state.name
         ## Make sure we use the original sqlite3.execute
         super().execute("""DELETE FROM __states WHERE state = :state;""", dict(state = state))
+        self.commit()
 
 class StateVersion(SV):
     @classmethod
